@@ -1,18 +1,9 @@
 {% extends "_base.html" %}
 
 {% block content %}
-	<br><br>
-
-    <h1>All Quotes</h1>
-
-    <br><br>
-
-    <form action="{% url 'search_results' %}" method="get">
-      <input type="search" required name="q" placeholder="Search by name or quote..." class="form-control">
-    </form>
-
-    <br><br>
-
+    <br>
+    <h4>All Quotes</h4>
+    <br>
     {% for quote in quotes %}
       <ul>
         <li>{{ quote.quote }} - <b>By <i>{{ quote.name }}</i></b></li>

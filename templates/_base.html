@@ -11,11 +11,17 @@
 <body>
 
   <div class="container">
+    <br>
+      <br>
+    <h4 style="colour:blue;">Search a quote</h4>
+    <form action="{% url 'search_results' %}" method="get">
+      <input type="search" required name="q" placeholder="Search by name or quote..." class="form-control" id="search-box">
+    </form>
     {% block content %}
     {% endblock content %}
   </div>
 
-  <script src="{% static "main.js" %}"></script>
+  <script src="{% static "js/main.js" %}"></script>
 
 </body>
 </html>

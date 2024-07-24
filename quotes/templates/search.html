@@ -1,12 +1,10 @@
 {% extends "_base.html" %}
 
 {% block content %}
-    <br><br>
-
-    <h1 style="color: red;">Search Results</h1>
-
-    <br><br>
-
+    <br>
+    <h4 style="color: red;">Search Results</h4>
+    <br>
+    <h5 style="color: blue;">Found {{ quotes.count }} items</h5>
     {% for quote in quotes %}
       <ul>
         <li>{{ quote.quote }} - <b>By <i>{{ quote.name }}</i></b></li>
