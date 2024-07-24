@@ -1,0 +1,23 @@
+{% extends "_base.html" %}
+
+{% block content %}
+    <br><br>
+
+    <h1 style="color: red;">Search Results</h1>
+
+    <br><br>
+
+    {% for quote in quotes %}
+      <ul>
+        <li>{{ quote.quote }} - <b>By <i>{{ quote.name }}</i></b></li>
+      </ul>
+    {% empty %}
+      <p>No results found. Try again.</p>
+    {% endfor %}
+
+    <br><br>
+
+    <a href="{% url 'all_quotes' %}" class="btn btn-primary">All Quotes</a>
+
+    <br><br>
+{% endblock content %}

@@ -1,0 +1,7 @@
+__pycache__/
+.DS_Store
+.env
+.idea/
+.venv/
+# Ignore compiled Python files in all subfolders
+**/*.pyc
