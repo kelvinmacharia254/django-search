@@ -8,6 +8,7 @@ class Command(BaseCommand):
     help = "Adds quotes to the database"
 
     def handle(self, *args, **options):
+        print("... adding quotes. Please wait ...")
         fake = Faker()
 
         for _ in range(10000):

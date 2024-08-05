@@ -3,6 +3,7 @@ from django.views.generic import ListView
 from django.views.decorators.cache import cache_page
 from django.db.models import Q
 from django.contrib.postgres.search import SearchVector,SearchQuery, SearchRank, SearchHeadline
+from django.db.models import F # F is used to reference a field in queries
 
 from .models import Quote
 
@@ -26,49 +27,57 @@ class SearchResultsList(ListView):
 
         Implement fulltext search with postgres support in Django
 
-        The implementation have been numbered using comments, comment in and out to test each as numbered
         """
+        # Get the search query from the GET parameters
         query = self.request.GET.get("q")
         if query:
-            # 1. Basic search
-            # queryset = Quote.objects.filter(Q(name__icontains=query)|Q(quote__icontains=query))
-
-            # 2. Fulltext search using postgres support in django
-            #     2(a). Single Field Search
-            #       search by a single field 'quote'
-            # queryset = Quote.objects.filter(quote__search=query)
-
-            #     2(b). Multiple Field Search
-            # search_query = SearchQuery(query) # get query from request object
-            # search_vector = SearchVector('name', 'quote')
-            # queryset = Quote.objects.annotate(search=search_vector).filter(search=search_query)
-
-            #     2(c). Multiple Field Search with stemming and ranking
-            #           Stemming: Process of reducing words to their stem base or root form such that tenses and plurals will be treated as similar words.
-            #               e.g. child and children are treated as same in the search.
-            #           Ranking allows us ordering results by relevance
-            #           Searching with the two allows more powerful, precise and relevant search
-            # search_query = SearchQuery(query) # get query from request object
-            # search_vector = SearchVector('name', 'quote')
-            # search_rank=SearchRank(search_vector, search_query)
-            # queryset = Quote.objects.annotate(search=search_vector, rank=search_rank).filter(search=search_query).order_by('-rank')
-
-            #     2(d). Multiple Field Search with weights
-            #           With FTS you can add more importance to some fields over others to refine search.
-            #           Weights take letters A,B,C,D which refers to numbers 1.0, 0.4, 0.2 and 0.1 respectively.
-            search_query = SearchQuery(query) # get query from request object
-            #           assign weights to fields in the vector, quote field will prevail over name field because of the higher weight
-            search_vector = SearchVector('name', weight='B') + SearchVector('quote', weight='A')
-            search_rank=SearchRank(search_vector, search_query)  #
-            #           We can also add a SearchHeadline:- allows a little preview of the search results
-            search_headline = SearchHeadline('quote', search_query) # takes field you want to preview along with the query
-            # filter results to display ones with rank>0.3
-            queryset = Quote.objects.annotate(search=search_vector, rank=search_rank).annotate(headline=search_headline).filter(rank__gte=0.3).order_by('-rank')
-
+            # Create a search query object from the user's input
+            search_query = SearchQuery(query)
+            # Reference the search_vector field in the model
+            search_vector = F('search_vector')
+            # Calculate the rank of each record based on how well it matches the search query
+            search_rank = SearchRank(F('search_vector'), search_query)
+            # Create a highlighted snippet of the matched text within the quote field
+            search_headline = SearchHeadline("quote", search_query)
+            # Annotate the queryset with the search vector, rank, and headline
+            queryset = Quote.objects.annotate(search=search_vector, rank=search_rank).annotate(headline=search_headline).filter(search_vector=search_query).order_by('-rank')
         else:
             # Return an empty queryset if no search term is provided
             queryset = Quote.objects.none()
 
         return queryset
 
+'''
+Detailed Comments:
+query = self.request.GET.get("q"):
+
+Retrieves the search query parameter from the GET request. If the parameter q is present in the request URL, its value will be assigned to query.
+if query::
+
+Checks if the query variable is not empty. This ensures that the search operation only proceeds if there is a search term provided by the user.
+search_query = SearchQuery(query):
+
+Converts the user's search input into a SearchQuery object. This object is used for performing full-text searches in PostgreSQL.
+search_vector = F('search_vector'):
+
+Uses Django’s F expression to reference the search_vector field of the Quote model. This field contains the precomputed search vectors for the quotes.
+search_rank = SearchRank(search_vector, search_query):
+
+Computes a rank for each record in the queryset based on how well the search_vector matches the search_query. Higher ranks indicate better matches.
+search_headline = SearchHeadline("quote", search_query):
+
+Generates a highlighted version of the quote field where the search terms are emphasized. This is useful for displaying search results with context around the matched terms.
+queryset = Quote.objects.annotate(search=search_vector, rank=search_rank).annotate(headline=search_headline).filter(search_vector=search_query).order_by('-rank'):
+
+Annotates the queryset with the search_vector, rank, and headline fields.
+Filters the queryset to include only those records whose search_vector matches the search_query.
+Orders the results by rank in descending order, so the most relevant results appear first.
+else: queryset = Quote.objects.none():
+
+If no search query is provided, returns an empty queryset. This avoids returning all quotes when no search term is specified.
+return queryset:
+
+Returns the final queryset, which is either the filtered and annotated search results or an empty queryset if no search term was provided.
+This implementation ensures that your search results are relevant and well-ranked, with highlights around the matched terms in the quotes.
+'''
 
