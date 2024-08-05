@@ -2,20 +2,21 @@
 
 {% block content %}
     <br>
-    <h4 style="color: red;">Search Results</h4>
+    <h2 style="color: red;">Search Results</h2>
     <br>
-    <h5 style="color: blue;">Found {{ quotes.count }} items</h5>
+    <p style="display: flex; gap: 5rem">
+        <span style="color: blue;font-size:1.5rem;" >Found {{ quotes.count }} item(s)</span>
+        <a href="{% url 'all_quotes' %}" class="btn btn-primary">Show All Quotes</a>
+    </p>
+
     {% for quote in quotes %}
       <ul>
-        <li>{{ quote.quote }} - <b>By <i>{{ quote.name }}</i></b></li>
+        <li>{{ quote.headline | safe }} - <b>By <i>{{ quote.name }}</i></b></li>
+{#        <li>{{ quote.quote }} - <b>By <i>{{ quote.name }}</i></b></li>#}
       </ul>
     {% empty %}
       <p>No results found. Try again.</p>
     {% endfor %}
-
-    <br><br>
-
-    <a href="{% url 'all_quotes' %}" class="btn btn-primary">All Quotes</a>
 
     <br><br>
 {% endblock content %}

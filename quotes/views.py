@@ -2,7 +2,7 @@ from django.utils.decorators import method_decorator
 from django.views.generic import ListView
 from django.views.decorators.cache import cache_page
 from django.db.models import Q
-from django.contrib.postgres.search import SearchVector,SearchQuery
+from django.contrib.postgres.search import SearchVector,SearchQuery, SearchRank, SearchHeadline
 
 from .models import Quote
 
@@ -22,7 +22,7 @@ class SearchResultsList(ListView):
 
     def get_queryset(self):
         """
-        Implement basic search with Django ORM lookups
+        Implement basic textual search
 
         Implement fulltext search with postgres support in Django
 
@@ -30,32 +30,44 @@ class SearchResultsList(ListView):
         """
         query = self.request.GET.get("q")
         if query:
-            # 1. Basic search feature with ORM lookups
+            # 1. Basic search
             # queryset = Quote.objects.filter(Q(name__icontains=query)|Q(quote__icontains=query))
 
-            # 2. Basic implementation of Fulltext search using postgres
-            #   Create the search vector and search query
-            search_vector = SearchVector('name', 'quote') # search db using this fields. Create a searchable vector
-            search_query = query # query from request object
-            #   Annotate and filter the queryset
-            queryset = Quote.objects.annotate(search=search_vector).filter(search=search_query)
+            # 2. Fulltext search using postgres support in django
+            #     2(a). Single Field Search
+            #       search by a single field 'quote'
+            # queryset = Quote.objects.filter(quote__search=query)
 
-            # 2. Implementation of Fulltext search with Stemming and Ranking using postgres
-            #   Create the search vector and search query
-
-            # search_vector = SearchVector('name', 'quote') # search db using this fields
-            # search_query = SearchQuery(query) # query from request object
-
-            #   Annotate and filter the queryset
+            #     2(b). Multiple Field Search
+            # search_query = SearchQuery(query) # get query from request object
+            # search_vector = SearchVector('name', 'quote')
             # queryset = Quote.objects.annotate(search=search_vector).filter(search=search_query)
 
-            # 3.
+            #     2(c). Multiple Field Search with stemming and ranking
+            #           Stemming: Process of reducing words to their stem base or root form such that tenses and plurals will be treated as similar words.
+            #               e.g. child and children are treated as same in the search.
+            #           Ranking allows us ordering results by relevance
+            #           Searching with the two allows more powerful, precise and relevant search
+            # search_query = SearchQuery(query) # get query from request object
+            # search_vector = SearchVector('name', 'quote')
+            # search_rank=SearchRank(search_vector, search_query)
+            # queryset = Quote.objects.annotate(search=search_vector, rank=search_rank).filter(search=search_query).order_by('-rank')
 
+            #     2(d). Multiple Field Search with weights
+            #           With FTS you can add more importance to some fields over others to refine search.
+            #           Weights take letters A,B,C,D which refers to numbers 1.0, 0.4, 0.2 and 0.1 respectively.
+            search_query = SearchQuery(query) # get query from request object
+            #           assign weights to fields in the vector, quote field will prevail over name field because of the higher weight
+            search_vector = SearchVector('name', weight='B') + SearchVector('quote', weight='A')
+            search_rank=SearchRank(search_vector, search_query)  #
+            #           We can also add a SearchHeadline:- allows a little preview of the search results
+            search_headline = SearchHeadline('quote', search_query) # takes field you want to preview along with the query
+            # filter results to display ones with rank>0.3
+            queryset = Quote.objects.annotate(search=search_vector, rank=search_rank).annotate(headline=search_headline).filter(rank__gte=0.3).order_by('-rank')
 
         else:
             # Return an empty queryset if no search term is provided
             queryset = Quote.objects.none()
-
 
         return queryset
 
